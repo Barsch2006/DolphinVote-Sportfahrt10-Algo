@@ -12,12 +12,18 @@ async function main(time: string) {
     students = shuffle(students);
 
     students.forEach((student: IUser, sindex: number) => {
+       //! needs to be a for loop Not for Each
         student.votes?[time].forEach((choice: ObjectId) => {
-        
+        // get the project of the choice.
+        // check if free
+            // free --
+            // student add project Id
         });
 
         if (!student.result[time]) {
-            
+            db.collection<IProject>("projects").find({})
+            // todo find online Projects with free Planes
+            // add the user
         }
     });
 }
