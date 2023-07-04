@@ -1,5 +1,7 @@
+import { VoteTime } from "./user";
+
 export default interface IProject {
     name: string;
-    max: number;
-    free: number;
+    free_slots: number;
+    time: VoteTime;
 }

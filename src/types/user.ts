@@ -1,26 +1,15 @@
-export default interface IUser {
+import { ObjectId } from "mongodb";
+
+export type VoteTime = "Mi-Vormittag" | "Mi-Nachmittag" | "Do-Vormittag" | "Do-Nachmittag";
+
+export default interface User {
+    code: string;
     name: string;
-    projects?: string[];
-    votes: [
-        {
-            erstwahl: string;
-            zweitwahl: string;
-            drittwahl: string;
-        },
-        {
-            erstwahl: string;
-            zweitwahl: string;
-            drittwahl: string;
-        },
-        {
-            erstwahl: string;
-            zweitwahl: string;
-            drittwahl: string;
-        },
-        {
-            erstwahl: string;
-            zweitwahl: string;
-            drittwahl: string;
-        },
-    ]
+    device?: string;
+    votes?: {
+        [key in VoteTime]?: ObjectId[]
+    },
+    results?: {
+        [key in VoteTime]?: ObjectId
+    }
 }

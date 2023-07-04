@@ -1,12 +1,13 @@
 import IProject from "../types/project";
 import IUser from "../types/user";
+import { Db } from "mongodb";
 
 interface IParserOptions {
     projectsCollection: string;
     votesCollection: string;
 }
 
-export default async (db: any, options: IParserOptions): Promise<{
+export default async (db: Db, options: IParserOptions): Promise<{
     projects: { [key: string]: IProject };
     votes: IUser[];
 }> => {
@@ -20,43 +21,14 @@ export default async (db: any, options: IParserOptions): Promise<{
     await projectsCursor.forEach((document: any) => {
         const project: IProject = {
             name: document.name ?? '',
-            max: Number(document.max) ?? 0,
-            free: Number(document.free) ?? 0,
+            time: document.time ?? '',
+            free_slots: Number(document.free) ?? 0,
         };
         projectsData[project.name] = project;
     });
 
     // Abstimmungsdaten aus der MongoDB abrufen
-    const votesData: IUser[] = [];
-    const votesCursor = votesCollection.find();
-    await votesCursor.forEach((document: any) => {
-        const student: IUser = {
-            name: document.name ?? '',
-            votes: [
-                {
-                    erstwahl: document.votes.erstwahl1 ?? '',
-                    zweitwahl: document.votes.zweitwahl1 ?? '',
-                    drittwahl: document.votes.drittwahl1 ?? '',
-                },
-                {
-                    erstwahl: document.votes.erstwahl2 ?? '',
-                    zweitwahl: document.votes.zweitwahl2 ?? '',
-                    drittwahl: document.votes.drittwahl2 ?? '',
-                },
-                {
-                    erstwahl: document.votes.erstwahl3 ?? '',
-                    zweitwahl: document.votes.zweitwahl3 ?? '',
-                    drittwahl: document.votes.drittwahl3 ?? '',
-                },
-                {
-                    erstwahl: document.votes.erstwahl4 ?? '',
-                    zweitwahl: document.votes.zweitwahl4 ?? '',
-                    drittwahl: document.votes.drittwahl4 ?? '',
-                },
-            ]
-        };
-        votesData.push(student);
-    });
+    const votesData: IUser[] = votesCollection.find().toArray();
 
     return {
         projects: projectsData,

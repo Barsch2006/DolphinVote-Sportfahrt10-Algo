@@ -4,7 +4,8 @@
 		"module": "commonjs",
 		"moduleResolution": "node",
 		"lib": [
-			"es5"
+			"es5",
+			"ES2015"
 		],
 
 		"rootDir": "src",
