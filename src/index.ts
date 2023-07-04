@@ -1,4 +1,5 @@
 import parser from './excel/parser';
+import writer from './excel/writer';
 import IUser from './types/user';
 
 async function main(index: number): Promise<void> {
@@ -60,6 +61,8 @@ async function main(index: number): Promise<void> {
             }
         }
     });
+
+    await writer(`./data/output${index}.xlsx`, projects, students, index);
 }
 
 function shuffle(a: Array<any>) {
