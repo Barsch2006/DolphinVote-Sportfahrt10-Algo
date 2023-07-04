@@ -1,1 +1,0 @@
-# DolphinVote-Sportfahrt10-Algo
