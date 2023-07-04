@@ -1,4 +1,3 @@
-import parser from './mongo/parser';
 import writer from './excel/writer';
 import IUser, { VoteTime } from './types/user';
 import {MongoClient, ObjectId} from 'mongodb';
@@ -8,22 +7,18 @@ async function main(time: string) {
     await client.connect();
     const db = client.db("dolphinVOTE");
 
-    const { projects, votes } = await parser(db, {
-        projectsCollection: "projects",
-        votesCollection: "users",
-    });
-
     // shuffle
-    let students: Array<IUser> = votes;
+    let students: Array<IUser> = db.collection<IUser>("users").find({});
     students = shuffle(students);
 
     students.forEach((student: IUser, sindex: number) => {
-        let studentChoices: ObjectId[] = student.votes?[time]
-
-        studentChoices.forEach((choice: ObjectId, cindex: number) => {
-
+        student.votes?[time].forEach((choice: ObjectId) => {
+        
         });
 
+        if (!student.result[time]) {
+            
+        }
     });
 }
 
