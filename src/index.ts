@@ -2,6 +2,7 @@ import IProject from './types/project';
 import IUser, { VoteTime } from './types/user';
 import { Collection, MongoClient, ObjectId } from 'mongodb';
 import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
+import User from './types/user';
 
 async function main() {
     try {
@@ -12,11 +13,11 @@ async function main() {
         const db = client.db("dolphinVOTE");
 
         // shuffle
-        let students: IUser[] = await db.collection<IUser>("users").find({}).toArray();
+        let students = await db.collection<IUser>("users").find({}).toArray();
         students = shuffle(students);
 
         for (let index: number = 0; index < students.length; index++) {
-            let student: IUser = students[index];
+            let student = students[index];
             // check if student has voted
             if (!student.votes) {
                 console.log(`Student ${student.name} has no votes`);
@@ -42,7 +43,7 @@ async function main() {
                                             );
                                         // add project to student
                                         await db
-                                            .collection("users")
+                                            .collection<User>("users")
                                             .updateOne(
                                                 { _id: student._id },
                                                 { $push: { projects: vote[timeindex] } }
@@ -70,7 +71,7 @@ async function main() {
         }
 
         // get all students with no projects
-        let studentsWithNoProjects: IUser[] = await db
+        let studentsWithNoProjects = await db
             .collection<IUser>("users")
             .find({ results: { $exists: false } })
             .toArray();
@@ -83,7 +84,7 @@ async function main() {
             .toArray();
 
         for (let index: number = 0; index < studentsWithNoProjects.length; index++) {
-            let student: IUser = studentsWithNoProjects[index];
+            let student = studentsWithNoProjects[index];
             for (let timeindex: number = 0; timeindex < times.length; timeindex++) {
                 let project = projects[timeindex];
                 if (project.free_slots > 0) {
@@ -114,36 +115,21 @@ async function main() {
         }
 
         for (let time of times) {
-            projects = await getStudentsWithProjectResult(
-                time,
-                db.collection("projects")
-            );
+            // write result for each project to file
+            let projects = await db.collection<IProject>("projects").find({}).toArray();
 
-            console.log(students)
+            for await (let project of projects) {
+            
+                // get all students with this project
+                let studentsInProject = await db.collection<IUser>("users").find({ [ `results.[${project.time}]`]: project._id }).toArray();
 
-            // write a xlsx file with the results
-            // add a sheet for each project and write the students name in it
-            for (let index: number = 0; index < projects.length; index++) {
-                let project: IProject = projects[index];
-                // fs create folder if not exists
-                if (!existsSync(`./out/${time}/`)) {
-                    mkdirSync(`./out/${time}`);
+                // write to file
+                let path = `./results/${project.time}-${project.name}.txt`;
+                if (!existsSync('./results')) {
+                    mkdirSync("./results");
                 }
-                let voted_students = await db
-                    .collection<IUser>("users")
-                    .find({ projects: { [time]: project._id } })
-                    .toArray();
-                console.log(voted_students.length);
-                voted_students.forEach((student: IUser) => {
-                    if (!existsSync(`./out/${time}/${project.name}.txt`)) {
-                        writeFileSync(`./out/${time}/${project.name}.txt`, student.name + "\n");
-                    } else {
-                        appendFileSync(
-                            `./out/${time}/${project.name}.txt`,
-                            student.name + "\n"
-                        );
-                    }
-                });
+                    writeFileSync(path, studentsInProject.map(student => student.name).join("\n"));
+            
             }
         }
 
@@ -152,18 +138,18 @@ async function main() {
         console.error("An error occurred:", error);
     }
 }
-
-main();
-
-
 const times: VoteTime[] = [
     "Mi-Nachmittag",
     "Do-Vormittag",
     "Do-Nachmittag"
 ]
 
-function shuffle(a: Array<any>) {
-    var j: any, x: any, i: any;
+main();
+
+
+
+function shuffle<T>(a: Array<T>) {
+    let j: number, x: T, i: number;
     for (i = a.length - 1; i > 0; i--) {
         j = Math.floor(Math.random() * (i + 1));
         x = a[i];
