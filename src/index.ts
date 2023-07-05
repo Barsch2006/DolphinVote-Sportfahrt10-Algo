@@ -70,8 +70,24 @@ async function main() {
         }
     }
 
-    // write on excel file per time slot. The excelfile should have sheets with the lists of students per project
-    
+    for (let time of times) {
+        // write a xlsx file with the results
+        let workbook = new xlsx.Workbook();
+        // add a sheet for each project and write the students name in it
+        for (let index: number = 0; index < projects.length; index++) {
+            let project: IProject = projects[index];
+            let sheet = workbook.addWorksheet(project.name);
+            sheet.addRow(["Name"]);
+            let voteted_students = await db.collection<IUser>("users").find({ results: { time: project._id } }).toArray();
+            voteted_students.forEach((student: IUser) => {
+                // add the students name to  the list
+                sheet.addRow([student.name]);
+            });
+        }
+
+        // write the file with the time as name
+        await workbook.xlsx.writeFile(`./out/${time}.xlsx`);
+    }
 }
 
 const times: VoteTime[] = [
