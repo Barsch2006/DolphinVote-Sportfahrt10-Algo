@@ -1,6 +1,7 @@
 import writer from './excel/writer';
+import IProject from './types/project';
 import IUser, { VoteTime } from './types/user';
-import {MongoClient} from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 
 async function main() {
     const client = new MongoClient("mongo://localhost:27017/");
@@ -11,9 +12,39 @@ async function main() {
     let students: IUser[] = await db.collection<IUser>("users").find({}).toArray();
     students = shuffle(students);
 
-    students.forEach((student: IUser, index: number) => {
-        
-    });
+    for (let index: number = 0; index < students.length; index++) {
+        let student: IUser = students[index];
+        // check if student has voted
+        if (!student.votes) {
+            continue;
+        } else {
+            Object.keys(student.votes).forEach((voteTime: string) => {
+                student.votes![voteTime].forEach(async (vote: ObjectId[]) => {
+                    // check if vote has 3 choices and is a string[]
+                    if (vote.length === 3 && Array.isArray(vote)) {
+                        for (let timeindex: number = 0; timeindex < vote.length; timeindex++) {
+                            // find the project in the database
+                            let project: IProject | null = await db.collection<IProject>("projects").findOne({ _id: vote[timeindex] });
+                            if (project) {
+                                if (project.free_slots > 0) {
+                                    // add student to project
+                                    db.collection("projects").updateOne({ name: project.name }, { $push: { students: student.name } });
+                                    // add project to student
+                                    db.collection("users").updateOne({ name: student.name }, { $push: { projects: vote[timeindex] } });
+                                    // decrease free slots
+                                    db.collection("projects").updateOne({ name: vote }, { $inc: { freeSlots: -1 } });
+                                }
+                            } else {
+                                console.log(`Project ${vote[timeindex]} not found`)
+                            }
+                        }
+                    } else {
+                        console.log(`Student ${student.name} had no valid vote for ${voteTime}`)
+                    }
+                });
+            });
+        }
+    }
 }
 
 const times: VoteTime[] = [
