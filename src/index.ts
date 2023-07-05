@@ -1,4 +1,3 @@
-import writer from './excel/writer';
 import IProject from './types/project';
 import IUser, { VoteTime } from './types/user';
 import { MongoClient, ObjectId } from 'mongodb';
@@ -45,6 +44,32 @@ async function main() {
             });
         }
     }
+
+    // get all students  with no  projects
+    let studentsWithNoProjects: IUser[] = await db.collection<IUser>("users").find({ projects: { $exists: false } }).toArray();
+    // put them in the projects with the most free slots
+    let projects: IProject[] = await db.collection<IProject>("projects").find({}).toArray();
+    projects = projects.sort((a: IProject, b: IProject) => {
+        return a.free_slots - b.free_slots;
+    });
+
+    for (let index: number = 0; index < studentsWithNoProjects.length; index++) {
+        let student: IUser = studentsWithNoProjects[index];
+        for (let timeindex: number = 0; timeindex < times.length; timeindex++) {
+            let project = projects[timeindex];
+            if (project.free_slots > 0) {
+                // add student to project
+                db.collection("projects").updateOne({ name: project.name }, { $push: { students: student.name } });
+                // add project to student
+                db.collection("users").updateOne({ name: student.name }, { $push: { projects: project._id } });
+                // decrease free slots
+                db.collection("projects").updateOne({ name: project.name }, { $inc: { freeSlots: -1 } });
+                break;
+            }
+        }
+    }
+
+    // write on excel file per time slot. The excelfile should have sheets with the lists of students per project
 }
 
 const times: VoteTime[] = [
