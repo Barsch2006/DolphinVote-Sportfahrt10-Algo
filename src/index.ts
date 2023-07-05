@@ -1,10 +1,10 @@
 import IProject from './types/project';
 import IUser, { VoteTime } from './types/user';
-import { MongoClient, ObjectId } from 'mongodb';
-import * as xlsx from 'exceljs';
+import { Collection, MongoClient, ObjectId } from 'mongodb';
+import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 
 async function main() {
-    const client = new MongoClient("mongo://localhost:27017/");
+    const client = new MongoClient("mongodb://sportfahrt:sportfahrt-klasse-10-datenbank-passwort-hochsicher-hoch-pi@127.0.0.1:27017/?authSource=admin");
     await client.connect();
     const db = client.db("dolphinVOTE");
 
@@ -21,7 +21,7 @@ async function main() {
             Object.keys(student.votes).forEach((voteTime: string) => {
                 student.votes![voteTime].forEach(async (vote: ObjectId[]) => {
                     // check if vote has 3 choices and is a string[]
-                    if (vote.length === 3 && Array.isArray(vote)) {
+                    if (Array.isArray(vote)) {
                         for (let timeindex: number = 0; timeindex < vote.length; timeindex++) {
                             // find the project in the database
                             let project: IProject | null = await db.collection<IProject>("projects").findOne({ _id: vote[timeindex] });
@@ -71,24 +71,31 @@ async function main() {
     }
 
     for (let time of times) {
+        projects = await getStudentsWithProjectResult(time, db.collection("projects"));
         // write a xlsx file with the results
-        let workbook = new xlsx.Workbook();
         // add a sheet for each project and write the students name in it
         for (let index: number = 0; index < projects.length; index++) {
             let project: IProject = projects[index];
-            let sheet = workbook.addWorksheet(project.name);
-            sheet.addRow(["Name"]);
-            let voteted_students = await db.collection<IUser>("users").find({ results: { time: project._id } }).toArray();
+            // fs create folder if not exists
+            if (!existsSync(`./out/${time}/`)) {
+                mkdirSync(`./out/${time}`);
+            }
+            let voteted_students = await db.collection<IUser>("users").find({ results: JSON.parse(`{ "${time}": "${project._id}" }`) }).toArray();
+            console.log(voteted_students.length);
             voteted_students.forEach((student: IUser) => {
-                // add the students name to  the list
-                sheet.addRow([student.name]);
+                if (!existsSync(`./out/${time}/${project.name}.txt`)) {
+                    writeFileSync(`./out/${time}/${project.name}.txt`, student.name + "\n");	
+                } else {
+                    appendFileSync(`./out/${time}/${project.name}.txt`, student.name + "\n");
+                }
             });
         }
-
-        // write the file with the time as name
-        await workbook.xlsx.writeFile(`./out/${time}.xlsx`);
     }
+
+    console.log("Done");
 }
+
+main()
 
 const times: VoteTime[] = [
     "Mi-Nachmittag",
@@ -105,4 +112,25 @@ function shuffle(a: Array<any>) {
         a[j] = x;
     }
     return a;
+}
+
+async function getStudentsWithProjectResult(time, collection: Collection) {
+    try {
+        const aggregationPipeline = [
+            {
+                $match: {
+                    results: {
+                        [time]: { $exists: true },
+                    },
+                },
+            },
+        ];
+
+        const studentsWithProjectResult = await collection.aggregate(aggregationPipeline).toArray() as IProject[];
+
+        return studentsWithProjectResult;
+    } catch (error) {
+        console.error("Error occurred:", error);
+        return [];
+    }
 }
