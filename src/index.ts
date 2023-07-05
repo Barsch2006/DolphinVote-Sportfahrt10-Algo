@@ -1,6 +1,7 @@
 import IProject from './types/project';
 import IUser, { VoteTime } from './types/user';
 import { MongoClient, ObjectId } from 'mongodb';
+import * as xlsx from 'exceljs';
 
 async function main() {
     const client = new MongoClient("mongo://localhost:27017/");
@@ -70,6 +71,7 @@ async function main() {
     }
 
     // write on excel file per time slot. The excelfile should have sheets with the lists of students per project
+    
 }
 
 const times: VoteTime[] = [
