@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 
-export type VoteTime = "Mi-Vormittag" | "Mi-Nachmittag" | "Do-Vormittag" | "Do-Nachmittag";
+export type VoteTime = "Mi-Nachmittag" | "Do-Vormittag" | "Do-Nachmittag";
 
 export default interface User {
     code: string;
